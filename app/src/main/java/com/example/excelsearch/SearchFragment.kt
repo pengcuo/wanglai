@@ -191,7 +191,7 @@ class SearchFragment : Fragment() {
     ): Boolean {
         if (raw.contains(q, ignoreCase = true)) return true
         if (normalizedQ.isEmpty()) return false
-        return key.initials.contains(normalizedQ) || key.full.contains(normalizedQ)
+        return key.matchesInitials(normalizedQ) || key.matchesFull(normalizedQ)
     }
 
     private fun onFinishedChanged(rowId: Int, finished: Boolean) {
