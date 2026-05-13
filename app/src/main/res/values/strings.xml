@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Excel 搜索</string>
+    <string name="app_name">Wanglai</string>
     <string name="pick_file">选择 Excel 文件 (.xlsx)</string>
     <string name="no_file">尚未加载文件</string>
     <string name="loading">读取中…</string>
