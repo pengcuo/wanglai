@@ -10,20 +10,18 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,7 +34,6 @@ class SearchFragment : Fragment() {
     private lateinit var resultList: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var progressText: TextView
-    private lateinit var sortSpinner: Spinner
 
     private val adapter = RowAdapter(::onFinishedChanged)
 
@@ -49,7 +46,8 @@ class SearchFragment : Fragment() {
     private data class RowEntry(
         val id: Int,
         val row: ExcelRow,
-        val key: PinyinKey,
+        val nameKey: PinyinKey,
+        val locationKey: PinyinKey,
     )
 
     private val pickFile = registerForActivityResult(
@@ -85,28 +83,9 @@ class SearchFragment : Fragment() {
         resultList = view.findViewById(R.id.resultList)
         progressBar = view.findViewById(R.id.finishedProgress)
         progressText = view.findViewById(R.id.progressText)
-        sortSpinner = view.findViewById(R.id.sortSpinner)
 
         resultList.layoutManager = LinearLayoutManager(requireContext())
         resultList.adapter = adapter
-        resultList.addItemDecoration(
-            DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL)
-        )
-
-        view.findViewById<Button>(R.id.pickFileButton).setOnClickListener {
-            pickFile.launch(arrayOf(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "application/vnd.ms-excel",
-                "application/octet-stream",
-                "*/*",
-            ))
-        }
-        view.findViewById<Button>(R.id.fontDecreaseButton)
-            .setOnClickListener { adjustScale(-SCALE_STEP) }
-        view.findViewById<Button>(R.id.fontIncreaseButton)
-            .setOnClickListener { adjustScale(+SCALE_STEP) }
-
-        setupSortSpinner()
 
         searchInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -118,32 +97,6 @@ class SearchFragment : Fragment() {
 
         updateProgress()
         restoreLastFile()
-    }
-
-    private fun setupSortSpinner() {
-        val spinnerAdapter = ArrayAdapter.createFromResource(
-            requireContext(),
-            R.array.sort_options,
-            android.R.layout.simple_spinner_item,
-        ).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        sortSpinner.adapter = spinnerAdapter
-        sortSpinner.setSelection(sortMode, false)
-        sortSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long,
-            ) {
-                if (position == sortMode) return
-                sortMode = position
-                prefs.edit().putInt(KEY_SORT_MODE, position).apply()
-                applyFilter(searchInput.text.toString())
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
     }
 
     private fun restoreLastFile() {
@@ -175,7 +128,12 @@ class SearchFragment : Fragment() {
                 onSuccess = { rows ->
                     currentUri = uri
                     entries = rows.mapIndexed { idx, row ->
-                        RowEntry(idx, row, PinyinKey.build(row.name))
+                        RowEntry(
+                            id = idx,
+                            row = row,
+                            nameKey = PinyinKey.build(row.name),
+                            locationKey = PinyinKey.build(row.location),
+                        )
                     }
                     finishedIds = loadFinishedIds(uri)
                     statusText.text = getString(R.string.loaded_count, rows.size)
@@ -202,11 +160,8 @@ class SearchFragment : Fragment() {
         } else {
             val normalizedQ = PinyinKey.normalize(q)
             entries.filter { entry ->
-                entry.row.name.contains(q, ignoreCase = true) ||
-                    (normalizedQ.isNotEmpty() && (
-                        entry.key.initials.contains(normalizedQ) ||
-                            entry.key.full.contains(normalizedQ)
-                        ))
+                matches(entry.row.name, entry.nameKey, q, normalizedQ) ||
+                    matches(entry.row.location, entry.locationKey, q, normalizedQ)
             }
         }
         val sorted = sortEntries(filtered)
@@ -220,12 +175,23 @@ class SearchFragment : Fragment() {
 
     private fun sortEntries(list: List<RowEntry>): List<RowEntry> = when (sortMode) {
         SORT_BY_NAME -> list.sortedWith(
-            compareBy(NAME_COMPARATOR) { it.key.full.ifEmpty { it.row.name } }
+            compareBy(NAME_COMPARATOR) { it.nameKey.full.ifEmpty { it.row.name } }
         )
         SORT_BY_LOCATION -> list.sortedWith(
-            compareBy(NAME_COMPARATOR) { it.row.location }
+            compareBy(NAME_COMPARATOR) { it.locationKey.full.ifEmpty { it.row.location } }
         )
         else -> list
+    }
+
+    private fun matches(
+        raw: String,
+        key: PinyinKey,
+        q: String,
+        normalizedQ: String,
+    ): Boolean {
+        if (raw.contains(q, ignoreCase = true)) return true
+        if (normalizedQ.isEmpty()) return false
+        return key.initials.contains(normalizedQ) || key.full.contains(normalizedQ)
     }
 
     private fun onFinishedChanged(rowId: Int, finished: Boolean) {
@@ -235,13 +201,74 @@ class SearchFragment : Fragment() {
         updateProgress()
     }
 
-    private fun adjustScale(delta: Float) {
+    private fun adjustScale(delta: Float): Float {
         val newScale = (textScale + delta).coerceIn(MIN_SCALE, MAX_SCALE)
-        if (newScale == textScale) return
-        textScale = newScale
-        prefs.edit().putFloat(KEY_TEXT_SCALE, newScale).apply()
-        adapter.updateScale(newScale)
+        if (newScale != textScale) {
+            textScale = newScale
+            prefs.edit().putFloat(KEY_TEXT_SCALE, newScale).apply()
+            adapter.updateScale(newScale)
+        }
+        return textScale
     }
+
+    fun openSettings() {
+        if (!isAdded) return
+        val ctx = requireContext()
+        val dialog = BottomSheetDialog(ctx)
+        val content = layoutInflater.inflate(R.layout.dialog_settings, null)
+        dialog.setContentView(content)
+
+        val fontValue = content.findViewById<TextView>(R.id.settingsFontValue)
+        fontValue.text = formatScale(textScale)
+
+        content.findViewById<MaterialButton>(R.id.settingsPickFile).setOnClickListener {
+            dialog.dismiss()
+            launchPicker()
+        }
+        content.findViewById<MaterialButton>(R.id.settingsFontDecrease).setOnClickListener {
+            fontValue.text = formatScale(adjustScale(-SCALE_STEP))
+        }
+        content.findViewById<MaterialButton>(R.id.settingsFontIncrease).setOnClickListener {
+            fontValue.text = formatScale(adjustScale(+SCALE_STEP))
+        }
+
+        val sortGroup = content.findViewById<MaterialButtonToggleGroup>(R.id.settingsSortGroup)
+        sortGroup.check(sortButtonId(sortMode))
+        sortGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val newMode = sortModeFor(checkedId)
+            if (newMode == sortMode) return@addOnButtonCheckedListener
+            sortMode = newMode
+            prefs.edit().putInt(KEY_SORT_MODE, newMode).apply()
+            applyFilter(searchInput.text.toString())
+        }
+
+        dialog.show()
+    }
+
+    private fun sortButtonId(mode: Int): Int = when (mode) {
+        SORT_BY_NAME -> R.id.sortByName
+        SORT_BY_LOCATION -> R.id.sortByLocation
+        else -> R.id.sortDefault
+    }
+
+    private fun sortModeFor(buttonId: Int): Int = when (buttonId) {
+        R.id.sortByName -> SORT_BY_NAME
+        R.id.sortByLocation -> SORT_BY_LOCATION
+        else -> SORT_DEFAULT
+    }
+
+    private fun launchPicker() {
+        pickFile.launch(arrayOf(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel",
+            "application/octet-stream",
+            "*/*",
+        ))
+    }
+
+    private fun formatScale(scale: Float): String =
+        getString(R.string.scale_percent, (scale * 100).toInt())
 
     private fun updateProgress() {
         val total = entries.size

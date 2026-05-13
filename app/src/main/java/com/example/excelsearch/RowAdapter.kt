@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
 class RowAdapter(
@@ -57,16 +58,22 @@ class RowAdapter(
         val ctx = holder.itemView.context
         val item = items[position]
         val row = item.row
-        holder.name.text = highlight(row.name, query)
+        val highlightBg = ContextCompat.getColor(ctx, R.color.highlight_match)
+        holder.name.text = highlight(row.name, query, highlightBg)
         holder.amount.text = ctx.getString(R.string.amount_format, row.amount.ifEmpty { "—" })
-        holder.location.text = ctx.getString(R.string.location_format, row.location.ifEmpty { "—" })
+        holder.location.text = highlightInTemplate(
+            ctx.getString(R.string.location_format, row.location.ifEmpty { "—" }),
+            row.location,
+            query,
+            highlightBg,
+        )
         holder.page.text = ctx.getString(R.string.page_format, row.page.ifEmpty { "—" })
 
-        applyScale(holder.name, 18f)
-        applyScale(holder.amount, 14f)
-        applyScale(holder.location, 14f)
-        applyScale(holder.page, 14f)
-        applyScale(holder.check, 14f)
+        applyScale(holder.name, 17f)
+        applyScale(holder.amount, 13f)
+        applyScale(holder.location, 13f)
+        applyScale(holder.page, 13f)
+        applyScale(holder.check, 12f)
 
         holder.check.setOnCheckedChangeListener(null)
         holder.check.isChecked = item.rowId in finishedIds
@@ -81,14 +88,36 @@ class RowAdapter(
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseSp * textScale)
     }
 
-    private fun highlight(text: String, q: String): CharSequence {
+    private fun highlight(text: String, q: String, bgColor: Int): CharSequence {
         if (q.isEmpty()) return text
         val idx = text.indexOf(q, ignoreCase = true)
         if (idx < 0) return text
         val span = SpannableString(text)
         span.setSpan(
-            BackgroundColorSpan(0xFFFFEB3B.toInt()),
+            BackgroundColorSpan(bgColor),
             idx, idx + q.length,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+        return span
+    }
+
+    private fun highlightInTemplate(
+        full: String,
+        substring: String,
+        q: String,
+        bgColor: Int,
+    ): CharSequence {
+        if (q.isEmpty() || substring.isEmpty()) return full
+        val matchIdx = substring.indexOf(q, ignoreCase = true)
+        if (matchIdx < 0) return full
+        val anchor = full.indexOf(substring)
+        if (anchor < 0) return full
+        val start = anchor + matchIdx
+        val end = start + q.length
+        val span = SpannableString(full)
+        span.setSpan(
+            BackgroundColorSpan(bgColor),
+            start, end,
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
         )
         return span

@@ -7,20 +7,25 @@
     <string name="load_failed">读取失败，请确认文件是 .xlsx 格式</string>
     <string name="load_failed_detail">读取失败：%1$s</string>
     <string name="loaded_count">已加载 %1$d 条记录</string>
-    <string name="search_hint">输入名字搜索（支持拼音首字母）</string>
+    <string name="search_hint">姓名或地址（支持拼音首字母、l/n 模糊）</string>
     <string name="amount_format">金额：%1$s</string>
     <string name="location_format">位置：%1$s</string>
     <string name="page_format">第 %1$s 页</string>
     <string name="font_decrease">A−</string>
     <string name="font_increase">A+</string>
-    <string name="finished_label">已结束</string>
+    <string name="finished_label">已回</string>
     <string name="progress_format">%1$d / %2$d</string>
     <string name="reload_failed">上次的文件无法打开，请重新选择</string>
 
-    <string name="sort_label">排序：</string>
-    <string name="sort_default">默认（文件顺序）</string>
-    <string name="sort_by_name">按姓名</string>
-    <string name="sort_by_location">按位置</string>
+    <string name="sort_label_plain">排序</string>
+    <string name="sort_short_default">默认</string>
+    <string name="sort_short_name">姓名</string>
+    <string name="sort_short_location">位置</string>
+
+    <string name="settings">设置</string>
+    <string name="settings_data_file">数据文件</string>
+    <string name="settings_text_scale">字号</string>
+    <string name="scale_percent">%1$d%%</string>
 
     <string name="tab_search">搜索</string>
     <string name="tab_image_extract">图片识别</string>
