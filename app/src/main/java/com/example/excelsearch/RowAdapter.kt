@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class RowAdapter(
     private val onFinishedChanged: (rowId: Int, finished: Boolean) -> Unit,
+    private val onRowClicked: (row: ExcelRow) -> Unit,
 ) : RecyclerView.Adapter<RowAdapter.VH>() {
 
     data class Item(val rowId: Int, val row: ExcelRow)
@@ -80,6 +81,8 @@ class RowAdapter(
         holder.check.setOnCheckedChangeListener { _, isChecked ->
             onFinishedChanged(item.rowId, isChecked)
         }
+
+        holder.itemView.setOnClickListener { onRowClicked(row) }
     }
 
     override fun getItemCount(): Int = items.size

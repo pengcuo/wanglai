@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -22,6 +23,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.switchmaterial.SwitchMaterial
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,13 +38,17 @@ class SearchFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var progressText: TextView
 
-    private val adapter = RowAdapter(::onFinishedChanged)
+    private val adapter = RowAdapter(::onFinishedChanged, ::onRowTapped)
 
     @Volatile private var entries: List<RowEntry> = emptyList()
     private var currentUri: Uri? = null
     private var finishedIds: MutableSet<Int> = mutableSetOf()
     private var textScale: Float = 1f
     private var sortMode: Int = SORT_DEFAULT
+    private var ttsEnabled: Boolean = true
+
+    private var tts: TextToSpeech? = null
+    private var ttsReady: Boolean = false
 
     private data class RowEntry(
         val id: Int,
@@ -77,6 +84,16 @@ class SearchFragment : Fragment() {
         textScale = prefs.getFloat(KEY_TEXT_SCALE, 1f).coerceIn(MIN_SCALE, MAX_SCALE)
         sortMode = prefs.getInt(KEY_SORT_MODE, SORT_DEFAULT)
             .coerceIn(SORT_DEFAULT, SORT_BY_LOCATION)
+        ttsEnabled = prefs.getBoolean(KEY_TTS_ENABLED, true)
+
+        tts = TextToSpeech(requireContext().applicationContext) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                val engine = tts ?: return@TextToSpeech
+                val result = engine.setLanguage(Locale.SIMPLIFIED_CHINESE)
+                ttsReady = result != TextToSpeech.LANG_MISSING_DATA &&
+                    result != TextToSpeech.LANG_NOT_SUPPORTED
+            }
+        }
 
         statusText = view.findViewById(R.id.statusText)
         searchInput = view.findViewById(R.id.searchInput)
@@ -194,6 +211,24 @@ class SearchFragment : Fragment() {
         return key.matchesInitials(normalizedQ) || key.matchesFull(normalizedQ)
     }
 
+    override fun onDestroyView() {
+        tts?.let {
+            it.stop()
+            it.shutdown()
+        }
+        tts = null
+        ttsReady = false
+        super.onDestroyView()
+    }
+
+    private fun onRowTapped(row: ExcelRow) {
+        if (!ttsEnabled || !ttsReady) return
+        val parts = listOf(row.name, row.location).filter { it.isNotBlank() }
+        if (parts.isEmpty()) return
+        val text = parts.joinToString("，")
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "row-tap")
+    }
+
     private fun onFinishedChanged(rowId: Int, finished: Boolean) {
         val changed = if (finished) finishedIds.add(rowId) else finishedIds.remove(rowId)
         if (!changed) return
@@ -241,6 +276,15 @@ class SearchFragment : Fragment() {
             sortMode = newMode
             prefs.edit().putInt(KEY_SORT_MODE, newMode).apply()
             applyFilter(searchInput.text.toString())
+        }
+
+        val ttsSwitch = content.findViewById<SwitchMaterial>(R.id.settingsTtsSwitch)
+        ttsSwitch.isChecked = ttsEnabled
+        ttsSwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked == ttsEnabled) return@setOnCheckedChangeListener
+            ttsEnabled = checked
+            prefs.edit().putBoolean(KEY_TTS_ENABLED, checked).apply()
+            if (!checked) tts?.stop()
         }
 
         dialog.show()
@@ -297,6 +341,7 @@ class SearchFragment : Fragment() {
         private const val KEY_LAST_URI = "last_uri"
         private const val KEY_TEXT_SCALE = "text_scale"
         private const val KEY_SORT_MODE = "sort_mode"
+        private const val KEY_TTS_ENABLED = "tts_enabled"
         private const val MIN_SCALE = 0.7f
         private const val MAX_SCALE = 2.0f
         private const val SCALE_STEP = 0.1f

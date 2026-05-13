@@ -25,6 +25,8 @@
     <string name="settings">设置</string>
     <string name="settings_data_file">数据文件</string>
     <string name="settings_text_scale">字号</string>
+    <string name="settings_playback">朗读</string>
+    <string name="settings_tts_toggle">点击行时朗读姓名与地址</string>
     <string name="scale_percent">%1$d%%</string>
 
     <string name="tab_search">搜索</string>
