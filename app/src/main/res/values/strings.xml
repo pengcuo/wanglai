@@ -30,7 +30,7 @@
     <string name="scale_percent">%1$d%%</string>
 
     <string name="tab_search">搜索</string>
-    <string name="tab_image_extract">图片识别</string>
+    <string name="tab_image_extract">生成礼本</string>
     <string name="image_extract_title">图片识别（开发中）</string>
     <string name="image_extract_description">未来用于上传图片，由大模型识别其中文字并自动整理为 Excel 行。</string>
     <string name="image_extract_pick">选择图片</string>
