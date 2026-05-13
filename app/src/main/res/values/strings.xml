@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Excel 搜索</string>
+    <string name="pick_file">选择 Excel 文件 (.xlsx)</string>
+    <string name="no_file">尚未加载文件</string>
+    <string name="loading">读取中…</string>
+    <string name="load_failed">读取失败，请确认文件是 .xlsx 格式</string>
+    <string name="load_failed_detail">读取失败：%1$s</string>
+    <string name="loaded_count">已加载 %1$d 条记录</string>
+    <string name="search_hint">输入名字搜索（支持拼音首字母）</string>
+    <string name="voice_search">语音搜索</string>
+    <string name="voice_prompt">请说出名字</string>
+    <string name="voice_not_supported">该设备不支持语音输入</string>
+    <string name="amount_format">金额：%1$s</string>
+    <string name="location_format">位置：%1$s</string>
+    <string name="page_format">第 %1$s 页</string>
+    <string name="font_decrease">A−</string>
+    <string name="font_increase">A+</string>
+    <string name="finished_label">已结束</string>
+    <string name="progress_format">%1$d / %2$d</string>
+    <string name="reload_failed">上次的文件无法打开，请重新选择</string>
+</resources>
