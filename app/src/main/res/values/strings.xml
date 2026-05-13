@@ -8,9 +8,6 @@
     <string name="load_failed_detail">读取失败：%1$s</string>
     <string name="loaded_count">已加载 %1$d 条记录</string>
     <string name="search_hint">输入名字搜索（支持拼音首字母）</string>
-    <string name="voice_search">语音搜索</string>
-    <string name="voice_prompt">请说出名字</string>
-    <string name="voice_not_supported">该设备不支持语音输入</string>
     <string name="amount_format">金额：%1$s</string>
     <string name="location_format">位置：%1$s</string>
     <string name="page_format">第 %1$s 页</string>
@@ -19,4 +16,16 @@
     <string name="finished_label">已结束</string>
     <string name="progress_format">%1$d / %2$d</string>
     <string name="reload_failed">上次的文件无法打开，请重新选择</string>
+
+    <string name="sort_label">排序：</string>
+    <string name="sort_default">默认（文件顺序）</string>
+    <string name="sort_by_name">按姓名</string>
+    <string name="sort_by_location">按位置</string>
+
+    <string name="tab_search">搜索</string>
+    <string name="tab_image_extract">图片识别</string>
+    <string name="image_extract_title">图片识别（开发中）</string>
+    <string name="image_extract_description">未来用于上传图片，由大模型识别其中文字并自动整理为 Excel 行。</string>
+    <string name="image_extract_pick">选择图片</string>
+    <string name="image_extract_coming_soon">功能尚在开发中，敬请期待。</string>
 </resources>
